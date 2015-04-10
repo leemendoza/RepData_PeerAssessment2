@@ -27,23 +27,24 @@ dt$BGN_DATE = as.Date(dt$BGN_DATE, "%m/%d/%Y")
 dt$END_DATE = as.Date(dt$END_DATE, "%m/%d/%Y")
 
 ## it appears that event reporting increase substantially beginning in 1993.
-## years before 1994 are ignored
-dt$year = as.integer(substr(dt$BGN_DATE, 1, 4))
-dt = filter(dt, year > 1993)
+## Since years before 1994 are inconsistent, events occurring before 1994 are ignored
+dt = filter(dt, BGN_DATE >= "1994-01-01")
 
-## let's ignore events that caused no injuries, fatalities, property damage, and crop damage
+## let's also ignore events that caused no injuries, fatalities, property damage, and crop damage
 harmful = filter(dt, INJURIES > 0 | FATALITIES > 0 | PROPDMG > 0 | CROPDMG > 0)
 
-## there are 449 different levels of event type. These should be collapsed into 
-## National Weather Service (NWS) categories, thus approximating the 48 listed in the documentation
-## We'll start by creating a NWS column which indicates the new category
+## there are 449 different levels of event type, many of which do not match
+## the event categories in the National Weather Service Instructions 10-1605
+## <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf>
+## The reported events should be collapsed into the National Weather Service (NWS) 
+## categories listed in the documentation. We'll start by creating a NWS column 
+## which indicates the new assigned NWS category
 harmful$NWS = NA
 
 ## eventmap.xlsx contains a mapping of the reported events in the original data to the 
-## event categories in the National Weather Service Instructions 10-1605
-## <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf>
-## The map was created by determining the closest match of the reported event to the 
-## NWS category. In cases in which the event was listed as combinations (such as
+## event categories in the NWS Instructions 10-1605.
+## The map was created by determining the closest match of the reported event in the data
+## to the NWS category. In cases in which the event was listed as combinations (such as
 ## Hurricane/High Winds) the first reported event listed was used, on the assumption that
 ## the data collector listed the most significant event first.
 
@@ -89,7 +90,7 @@ harmful$CropMult[which(harmful$CROPDMGEXP == '0') ] = 1
 ## now calculate the costs
 harmful$CropCost = as.numeric(harmful$CROPDMG * harmful$CropMult)
 
-## for discussion purposes, calculate the overall damage by event type, over all areas
+## for discussion purposes, summarize the overall damage by event type, over all areas
 damage = harmful %>%
     group_by(NWS) %>%
     summarize(Fatalities = sum(FATALITIES), Injuries = sum(INJURIES), 
