@@ -15,12 +15,12 @@ require(gridExtra)
 ############################################### DATA PROCESSING ################################################
 ## get the source file, read as binary
 setInternet2(use = TRUE)
-download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "c:\\data\\FStormData.bz2", mode = "wb")
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "FStormData.bz2", mode = "wb")
 
 ## it's not necessary to decompress the file, R can read it directly. See this link...
 ## https://entropicevolution.wordpress.com/2014/01/24/learning-r-r-can-read-compressed-files/
 
-dt = read.table("c:\\data\\FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = F, sep = ",")
+dt = read.table("FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = F, sep = ",")
 
 ## convert dates to a useful format
 dt$BGN_DATE = as.Date(dt$BGN_DATE, "%m/%d/%Y")
@@ -48,9 +48,9 @@ harmful$NWS = NA
 ## the data collector listed the most significant event first.
 
 ## load the mapping file
-map = read.xlsx("c:\\data\\eventmap.xlsx", 1, stringsAsFactors = FALSE)
+map = read.xlsx2("eventmap.xlsx", 1, stringsAsFactors = FALSE)
 
-## loop through the mapping file, adding the NWS-mapped event type to the data table
+## loop through the mapping file, adding the NWS-mapped event type to the harmful data 
 for (i in 1:nrow(map)){
     harmful$NWS[which(harmful$EVTYPE == map$EVTYPE[i])] = map$NWS[i]
 }
@@ -89,7 +89,6 @@ harmful$CropMult[which(harmful$CROPDMGEXP == '0') ] = 1
 ## now calculate the costs
 harmful$CropCost = as.numeric(harmful$CROPDMG * harmful$CropMult)
 
-
 ## for discussion purposes, calculate the overall damage by event type, over all areas
 damage = harmful %>%
     group_by(NWS) %>%
@@ -104,7 +103,7 @@ damagebystate = harmful %>%
               Property = sum(PropCost), Crops = sum(CropCost), Count = n())
 
 ## pull in the fips names here and merge with the damagebystate data
-fips = read.xlsx("c:\\data\\statefips.xlsx", 1, stringsAsFactors = FALSE)
+fips = read.xlsx("statefips.xlsx", 1, stringsAsFactors = FALSE)
 
 ## merge the fips info with the damagebystate. This will give us state names to go
 ## with all the damage
