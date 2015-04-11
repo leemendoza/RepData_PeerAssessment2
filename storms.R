@@ -96,6 +96,8 @@ damage = harmful %>%
     summarize(Fatalities = sum(FATALITIES), Injuries = sum(INJURIES), 
               Property = sum(PropCost), Crops = sum(CropCost), Count = n())
 
+## determine the top 10 most harmful events in each category...
+fatalities = damage %>% arrange()
 
 ## Now calculating the damage by event type for each state
 damagebystate = harmful %>%
