@@ -1,5 +1,16 @@
-## Reproducible Research # 2
+---
+title: "Determination of Most Harmful Weather Events Across the US"
+author: "Lee Mendoza"
+date: "Saturday, April 11, 2015"
+output: html_document
+---
 
+## Synopsis 
+Harmful weather events are determined by analyzing National Weather Service data for weather events recorded from 1994 through 2011. Events most harmful with respect to population health (those resulting in deaths and injuries) are determined as are those having economic consequences (those resulting in property and crop damage). The top 10 most harmful events, across the US, are shown. The most harmful events for each state are  also determined and shown graphically. These results may be of use to government or municipal managers who might be responsible for planning and preparing for severe weather events.
+
+## Data Processing  
+```{r, echo=FALSE, message=FALSE}
+## load the requred libraries
 require(data.table)
 require(dplyr)
 require(stringr)
@@ -9,12 +20,9 @@ require(maps)
 require(grid)
 require(gridExtra)
 require(R.cache)
-
-## documentation of the data is here:
-## https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
-
-############################################### DATA PROCESSING ################################################
-## get the source file, read as binary
+```
+```{r}
+############################################### DATA PROCESSING ##############################################
 ## the data have already been downloaded and should be in the current directory. If not,
 ## download the data here:
 ##setInternet2(use = TRUE)
@@ -22,8 +30,9 @@ require(R.cache)
 
 ## it's not necessary to decompress the file, R can read it directly. See this link...
 ## https://entropicevolution.wordpress.com/2014/01/24/learning-r-r-can-read-compressed-files/
-
-dt =  evalWithMemoization(read.table("FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = F, sep = ","))
+## evalWithMemoization is used to read the cached results of reading the storm data. Otherwise, this
+## could take awhile
+dt =  evalWithMemoization(read.table("FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, sep = ","))
 
 ## convert dates to a useful format
 dt$BGN_DATE = as.Date(dt$BGN_DATE, "%m/%d/%Y")
@@ -154,10 +163,6 @@ maxcropdamage$AreaName = tolower(maxcropdamage$AreaName)
 ## load us map info
 states_map = map_data("state")
 
-## join the states mapping data with the death data
-statesdeath = merge(states_map, maxdeaths, by.x = "region", by.y = "AreaName")
-statesdeath$Event = as.factor(statesdeath$NWS)
-
 ##getPalette = colorRampPalette(brewer.pal(12, "Set3"))
 ##getPalette = colorRampPalette(c("red", "yellow", "white", "green", "blue"))
 getPalette = colorRampPalette(c("#00007F", "blue", "#007FFF", 
@@ -169,6 +174,16 @@ palette = c("#4EC06C", "#F45AB2", "#A12102", "#1A303C",
             "#54182D", "#F63D70", "#F6A7F4", "#3C825A",
             "#AA6D1D", "#84FC87", "#093525", "#EBEBBB",
             "#A7151A")
+
+
+
+```
+## Results  
+```{r fig.width=12, fig.height=5}
+## join the states mapping data with the death data
+statesdeath = merge(states_map, maxdeaths, by.x = "region", by.y = "AreaName")
+statesdeath$Event = as.factor(statesdeath$NWS)
+
 p1 = ggplot()
 p1 = p1 + theme(axis.ticks = element_blank(), 
                 axis.text.x = element_blank(), axis.text.y = element_blank(), 
@@ -192,8 +207,8 @@ p2 = p2 + ggtitle("Event causing most injuries per state")
 
 ## plot the population health data on the same page
 grid.arrange(p1, p2, ncol=2, sub = textGrob("Events most harmful to population health"))
-
-
+```
+```{r fig.width=12, fig.height=5}
 ## join the states data with the property data
 statesproperty = merge(states_map, maxpropdamage, by.x = "region", by.y = "AreaName")
 statesproperty$Event = as.factor(statesproperty$NWS)
@@ -218,9 +233,19 @@ p4 = p4 + geom_polygon(data = statescrops, aes(x=long, y=lat, group = group, fil
 ##p4 = p4 + scale_fill_manual(values = getPalette(length(unique(statescrops$Event))))
 p4 = p4 + scale_fill_manual(values = palette)
 p4 = p4 + ggtitle("Event causing most crop damage per state")
-
 ## plot the economic consequences data on the same page
 grid.arrange(p3, p4, ncol=2, sub = textGrob("Events with greatest economic consequences"))
+```
+## Summary  
 
+```{r}
+summary(cars)
+```
 
+You can also embed plots, for example:
 
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
