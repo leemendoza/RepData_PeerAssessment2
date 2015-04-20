@@ -29,7 +29,7 @@ dt =  evalWithMemoization(read.table("FStormData.bz2", header = TRUE, fill = TRU
 dt$BGN_DATE = as.Date(dt$BGN_DATE, "%m/%d/%Y")
 dt$END_DATE = as.Date(dt$END_DATE, "%m/%d/%Y")
 
-## it appears that event reporting increase substantially beginning in 1993.
+## it appears that event reporting increased substantially beginning in 1993.
 ## Since years before 1994 are inconsistent, events occurring before 1994 are ignored
 dt = filter(dt, BGN_DATE >= "1994-01-01")
 

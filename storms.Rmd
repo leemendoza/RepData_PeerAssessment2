@@ -9,7 +9,8 @@ output: html_document
 Harmful weather events are determined by analyzing National Weather Service data for weather events recorded from 1994 through 2011. Events most harmful with respect to population health (those resulting in deaths and injuries) are determined as are those having economic consequences (those resulting in property and crop damage). The top 10 most harmful events, across the US, are shown. The most harmful events for each state are  also determined and shown graphically. These results may be of use to government or municipal managers who might be responsible for planning and preparing for severe weather events.
 
 ## Data Processing  
-```{r, echo=FALSE, message=FALSE}
+Weather event data from the National Weather Service (NWS) from 1950 - 2011 were downloaded and prepared for analysis. The data were classified according to NWS weather event categories methods for downloading, 
+```{r, echo=FALSE, message=FALSE, cache=TRUE}
 ## load the requred libraries
 require(data.table)
 require(dplyr)
@@ -19,48 +20,50 @@ require(ggplot2)
 require(maps)
 require(grid)
 require(gridExtra)
-require(R.cache)
+require(knitr)
+##require(R.cache)
 ```
-```{r}
-############################################### DATA PROCESSING ##############################################
+```{r cache=TRUE}
+################################ DATA PROCESSING ###############################
 ## the data have already been downloaded and should be in the current directory. If not,
-## download the data here:
+## uncomment the following two lines and download the data:
 ##setInternet2(use = TRUE)
 ##download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "FStormData.bz2", mode = "wb")
 
 ## it's not necessary to decompress the file, R can read it directly. See this link...
 ## https://entropicevolution.wordpress.com/2014/01/24/learning-r-r-can-read-compressed-files/
-## evalWithMemoization is used to read the cached results of reading the storm data. Otherwise, this
-## could take awhile
-dt =  evalWithMemoization(read.table("FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, sep = ","))
-
+dt =  read.table("FStormData.bz2", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, sep = ",")
+```
+```{r cache=TRUE}
 ## convert dates to a useful format
 dt$BGN_DATE = as.Date(dt$BGN_DATE, "%m/%d/%Y")
 dt$END_DATE = as.Date(dt$END_DATE, "%m/%d/%Y")
 
-## it appears that event reporting increase substantially beginning in 1993.
+## FILTERING ###############################
+## it appears that event reporting increased substantially beginning in 1993.
 ## Since years before 1994 are inconsistent, events occurring before 1994 are ignored
 dt = filter(dt, BGN_DATE >= "1994-01-01")
 
 ## let's also ignore events that caused no injuries, fatalities, property damage, and crop damage
 harmful = filter(dt, INJURIES > 0 | FATALITIES > 0 | PROPDMG > 0 | CROPDMG > 0)
 
-## there are 449 different levels of event type, many of which do not match
+## CLASSIFICATION ##########################
+## there are 449 different levels of event type in the data, many of which do not match
 ## the event categories in the National Weather Service Instructions 10-1605
 ## <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf>
-## The reported events should be collapsed into the National Weather Service (NWS) 
+## The reported events should be classified according to the National Weather Service (NWS) 
 ## categories listed in the documentation. We'll start by creating a NWS column 
 ## which indicates the new assigned NWS category
 harmful$NWS = NA
 
 ## eventmap.xlsx contains a mapping of the reported events in the original data to the 
 ## event categories in the NWS Instructions 10-1605.
-## The map was created by determining the closest match of the reported event in the data
-## to the NWS category. In cases in which the event was listed as combinations (such as
-## Hurricane/High Winds) the first reported event listed was used, on the assumption that
-## the data collector listed the most significant event first.
+## The map was manually created by determining the closest match of the reported event in the data
+## to the NWS category. In cases in which the event was listed as a combination (such as
+## Hurricane/High Winds) the first reported event listed was used to classify the event, 
+## on the assumption that the data collector listed the most significant event first.
 
-## load the mapping file
+## load the mapping file from the current folder
 map = read.xlsx2("eventmap.xlsx", 1, stringsAsFactors = FALSE)
 
 ## loop through the mapping file, adding the NWS-mapped event type to the harmful data 
@@ -71,7 +74,7 @@ for (i in 1:nrow(map)){
 ## make the NWS category a factor
 harmful$NWS = as.factor(harmful$NWS)
     
-################# prepare the data to calculate economic consequence
+## prepare the data to calculate economic consequence
 ## the new PropMult column will be used as a numeric factor (based on the PROPDMGEXP column)
 ## with which to multiply the PROPDMG amount. The default value is 1
 harmful$PropMult = 1
@@ -106,25 +109,54 @@ harmful$CropCost = as.numeric(harmful$CROPDMG * harmful$CropMult)
 damage = harmful %>%
     group_by(NWS) %>%
     summarize(Fatalities = sum(FATALITIES), Injuries = sum(INJURIES), 
-              Property = sum(PropCost), Crops = sum(CropCost), Count = n())
+              Property = sum(PropCost)/1000000000, 
+              Crops = sum(CropCost)/1000000000, 
+              Count = n())
 
 ## determine the top 10 most harmful events in each category...
-fatalities = damage %>% arrange(desc(Fatalities)) %>% select(NWS, Fatalities) %>% top_n(10, Fatalities) %>% rename("Event" = NWS)
-injuries = damage %>% arrange(desc(Injuries)) %>% select(NWS, Injuries) %>% top_n(10, Injuries) %>% rename("Event" = NWS)
-property = damage %>% arrange(desc(Property)) %>% top_n(10, Property) %>% select(NWS, Property) %>% rename("Event" = NWS, "Property Damage ($)" = Property) 
-crops = damage %>% arrange(desc(Crops)) %>% top_n(10, Crops) %>% select(NWS, Crops) %>% rename("Event" = NWS, "Crop Damage ($)" = Crops) 
+fatalities = damage %>% 
+        arrange(desc(Fatalities)) %>% 
+        select(NWS, Fatalities) %>% 
+        top_n(10, Fatalities) %>% 
+        rename("Event" = NWS)
+
+injuries = damage %>% 
+        arrange(desc(Injuries)) %>% 
+        select(NWS, Injuries) %>% 
+        top_n(10, Injuries) %>% 
+        rename("Event" = NWS)
+
+property = damage %>% 
+        arrange(desc(Property)) %>% 
+        top_n(10, Property) %>% 
+        select(NWS, Property) %>% 
+        rename("Event" = NWS, "Property Damage ($B)" = Property) 
+
+crops = damage %>% 
+        arrange(desc(Crops)) %>% 
+        top_n(10, Crops) %>% 
+        select(NWS, Crops) %>% 
+        rename("Event" = NWS, "Crop Damage ($B)" = Crops) 
+
 mostharmful = cbind(fatalities, injuries, property, crops)
 
-## Now calculating the damage by event type for each state
+## Now calculate the damage by event type for each state
 damagebystate = harmful %>%
     group_by(STATE__, NWS) %>%
-    summarize(Fatalities = sum(FATALITIES), Injuries = sum(INJURIES), 
-              Property = sum(PropCost), Crops = sum(CropCost), Count = n())
+    summarize(Fatalities = sum(FATALITIES), 
+              Injuries = sum(INJURIES), 
+              Property = sum(PropCost), 
+              Crops = sum(CropCost), 
+              Count = n())
 
-## pull in the fips names here and merge with the damagebystate data
+## pull in the pre-prepared Federal Information Processing Standard (FIPS) names here from
+## https://www.census.gov/geo/reference/ansi_statetables.html. The codes from the states, 
+## outlying areas, and individual minor outlying islands were combined to provide
+## a usable list.  The data are read from the spreadsheet in the current folder
+## and merge with the damagebystate data
 fips = read.xlsx("statefips.xlsx", 1, stringsAsFactors = FALSE)
 
-## merge the fips info with the damagebystate. This will give us state names to go
+## merge the fips info with the damagebystate. This will give us standard state names to go
 ## with all the damage
 damagebystate = merge(damagebystate, fips, by.x = 'STATE__', by.y = 'FIPS', all.x = TRUE)
 
@@ -160,6 +192,16 @@ maxcropdamage = damagebystate %>%
     select(STATE__, AreaName, NWS, Crops)
 maxcropdamage$AreaName = tolower(maxcropdamage$AreaName)
 
+###################### end of data processing
+
+```
+## Results  
+The rankings of the `r nrow(mostharmful)` most harmful weather events across the US are shown below. As you can see, the event resulting in the most fatalities is `r mostharmful[1, 1]`, the most injuries is `r mostharmful[1, 3]`, the most property damage is `r mostharmful[1, 5]`, and the most crop damage is `r mostharmful[1, 7]`
+```{r kable, results='asis', echo=FALSE}
+kable(mostharmful)
+```
+
+```{r fig.width=12, fig.height=12, fig.align='center'}
 ## load us map info
 states_map = map_data("state")
 
@@ -175,11 +217,6 @@ palette = c("#4EC06C", "#F45AB2", "#A12102", "#1A303C",
             "#AA6D1D", "#84FC87", "#093525", "#EBEBBB",
             "#A7151A")
 
-
-
-```
-## Results  
-```{r fig.width=12, fig.height=5}
 ## join the states mapping data with the death data
 statesdeath = merge(states_map, maxdeaths, by.x = "region", by.y = "AreaName")
 statesdeath$Event = as.factor(statesdeath$NWS)
@@ -206,9 +243,9 @@ p2 = p2 + geom_polygon(data = statesinjury, aes(x=long, y=lat, group = group, fi
 p2 = p2 + ggtitle("Event causing most injuries per state")
 
 ## plot the population health data on the same page
-grid.arrange(p1, p2, ncol=2, sub = textGrob("Events most harmful to population health"))
+grid.arrange(p1, p2, ncol=1, nrow=2, sub = textGrob("Events most harmful to population health"))
 ```
-```{r fig.width=12, fig.height=5}
+```{r fig.width=12, fig.height=12, fig.align='center'}
 ## join the states data with the property data
 statesproperty = merge(states_map, maxpropdamage, by.x = "region", by.y = "AreaName")
 statesproperty$Event = as.factor(statesproperty$NWS)
@@ -234,18 +271,7 @@ p4 = p4 + geom_polygon(data = statescrops, aes(x=long, y=lat, group = group, fil
 p4 = p4 + scale_fill_manual(values = palette)
 p4 = p4 + ggtitle("Event causing most crop damage per state")
 ## plot the economic consequences data on the same page
-grid.arrange(p3, p4, ncol=2, sub = textGrob("Events with greatest economic consequences"))
+grid.arrange(p3, p4, nrow=2, sub = textGrob("Events with greatest economic consequences"))
 ```
 ## Summary  
 
-```{r}
-summary(cars)
-```
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
