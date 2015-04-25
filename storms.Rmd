@@ -139,7 +139,21 @@ crops = damage %>%
 
 mostharmful = cbind(fatalities, injuries, property, crops)
 
-## Now calculate the damage by event type for each state
+###################### end of data processing
+
+```
+## Results  
+The rankings of the `r nrow(mostharmful)` most harmful weather events across the US are shown in Figure 1 below. As you can see, the event resulting in the most fatalities is `r mostharmful[1, 1]`, the most injuries is `r mostharmful[1, 3]`, the most property damage is `r mostharmful[1, 5]`, and the most crop damage is `r mostharmful[1, 7]`  
+
+**Figure 1. The ten most harmful weather-related events by category, combined across states. Property and Crop Damage is shown in billions ($B) of dollars**
+```{r kable, results='asis', echo=FALSE}
+## alignment string
+alignment = c('r', 'r', 'r', 'r', 'r', 'r', 'r', 'r')
+kable(mostharmful, align = alignment, digits = 2)
+```
+
+```{r} 
+################# Processing code to determine the most harmful events for each state
 damagebystate = harmful %>%
     group_by(STATE__, NWS) %>%
     summarize(Fatalities = sum(FATALITIES), 
@@ -191,24 +205,6 @@ maxcropdamage = damagebystate %>%
     select(STATE__, AreaName, NWS, Crops)
 maxcropdamage$AreaName = tolower(maxcropdamage$AreaName)
 
-###################### end of data processing
-
-```
-## Results  
-The rankings of the `r nrow(mostharmful)` most harmful weather events across the US are shown in Figure 1 below. As you can see, the event resulting in the most fatalities is `r mostharmful[1, 1]`, the most injuries is `r mostharmful[1, 3]`, the most property damage is `r mostharmful[1, 5]`, and the most crop damage is `r mostharmful[1, 7]`  
-
-**Figure 1. The ten most harmful weather-related events by category, combined across states. Property and Crop Damage is shown in billions ($B) of dollars**
-```{r kable, results='asis', echo=FALSE}
-## alignment string
-alignment = c('r', 'r', 'r', 'r', 'r', 'r', 'r', 'r')
-kable(mostharmful, align = alignment, digits = 2)
-```
-
-
-
-
-```{r fig.width=12, fig.height=12, fig.align='center'}
-################# Processing code to determine  
 ## load us map info
 states_map = map_data("state")
 
@@ -217,6 +213,7 @@ states_map = map_data("state")
 getPalette = colorRampPalette(c("#00007F", "blue", "#007FFF", 
                                 "cyan", "green", "#7FFF7F", 
                                 "yellow", "#FF7F00", "red", "#7F0000"))
+
 palette = c("#4EC06C", "#F45AB2", "#A12102", "#1A303C",
             "#EAE7F5", "#E5AA7A", "#44246B", "#A09921",
             "#7CB3FA", "#E5F8A7", "#3FFDD0", "#60CB25",
@@ -235,7 +232,7 @@ p1 = p1 + theme(axis.ticks = element_blank(),
                 panel.grid.minor=element_blank(), panel.grid.major=element_blank())
 p1 = p1 + geom_polygon(data = statesdeath, aes(x=long, y=lat, group = group, fill = Event), color = "black") 
 p1 = p1 + scale_fill_manual(values = getPalette(length(unique(statesdeath$Event))))
-p1 = p1 + ggtitle("Event causing most fatalities per state")
+##p1 = p1 + ggtitle("Event causing most fatalities per state")
 
 ## join the states data with the injury data
 statesinjury = merge(states_map, maxinjuries, by.x = "region", by.y = "AreaName")
@@ -247,12 +244,15 @@ p2 = p2 + theme(axis.ticks = element_blank(),
                 axis.title.x = element_blank(), axis.title.y = element_blank(),
                 panel.grid.minor=element_blank(), panel.grid.major=element_blank())
 p2 = p2 + geom_polygon(data = statesinjury, aes(x=long, y=lat, group = group, fill = Event), color = "black") 
-p2 = p2 + ggtitle("Event causing most injuries per state")
+##p2 = p2 + ggtitle("Event causing most injuries per state")
+```
+**Figure 2. Events most harmful to population health in each state. The top panel indicates the leading cause of weather-related deaths in each state, while the bottom panel indicates the leading cause of weather-related injuries.**   
 
+```{r echo=FALSE, fig.width=12, fig.height=12, fig.align='center'}
 ## plot the population health data on the same page
 grid.arrange(p1, p2, ncol=1, nrow=2)
 ```
-**Figure 2. Events most harmful to population health in each state. The top panel indicates the leading cause of weather-related deaths in each state, while the bottom panel indicates the leading cause of weather-related injuries.**  
+
 
 ```{r fig.width=12, fig.height=12, fig.align='center'}
 ## join the states data with the property data
@@ -264,7 +264,7 @@ p3 = p3 + theme(axis.ticks = element_blank(),
                 axis.title.x = element_blank(), axis.title.y = element_blank(),
                 panel.grid.minor=element_blank(), panel.grid.major=element_blank())
 p3 = p3 + geom_polygon(data = statesproperty, aes(x=long, y=lat, group = group, fill = Event), color = "black") 
-p3 = p3 + ggtitle("Event causing most property damage per state")
+##p3 = p3 + ggtitle("Event causing most property damage per state")
 
 ## join the states data with the injury data
 statescrops = merge(states_map, maxcropdamage, by.x = "region", by.y = "AreaName")
@@ -278,9 +278,14 @@ p4 = p4 + theme(axis.ticks = element_blank(),
 p4 = p4 + geom_polygon(data = statescrops, aes(x=long, y=lat, group = group, fill = Event), color = "black") 
 ##p4 = p4 + scale_fill_manual(values = getPalette(length(unique(statescrops$Event))))
 p4 = p4 + scale_fill_manual(values = palette)
-p4 = p4 + ggtitle("Event causing most crop damage per state")
+##p4 = p4 + ggtitle("Event causing most crop damage per state")
+```  
+
+**Figure 3. Events with the greatest economic consequences in each state. The top panel indicates the weather event leading to the greatest property damage in each state, while the bottom panel indicates the weather event leading to the greatest crop damage.**  
+```{r echo = FALSE, fig.width=12, fig.height=12, fig.align='center'}
 ## plot the economic consequences data on the same page
-grid.arrange(p3, p4, nrow=2, sub = textGrob("Events with greatest economic consequences"))
-```
+grid.arrange(p3, p4, nrow=2)
+```  
+
 ## Summary  
 
