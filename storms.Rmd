@@ -1,7 +1,7 @@
 ---
 title: "Determination of Most Harmful Weather Events Across the US"
 author: "Lee Mendoza"
-date: "Saturday, April 11, 2015"
+date: "Saturday, April 25, 2015"
 output: html_document
 ---
 
@@ -23,6 +23,9 @@ require(gridExtra)
 require(knitr)
 ```
 ```{r cache=TRUE}
+## All code and ancillary files are available in the github repository -
+## https://github.com/leemendoza/RepData_PeerAssessment2
+
 ################################ DATA PROCESSING ###############################
 ## the data have already been downloaded and should be in the current directory. If not,
 ## uncomment the following two lines and download the data:
