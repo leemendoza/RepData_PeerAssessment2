@@ -1,0 +1,11 @@
+base
+data.table
+dplyr
+stringr
+rJava
+xlsxjars
+xlsx
+ggplot2
+maps
+gridExtra
+knitr
